@@ -75,97 +75,105 @@ export function useImagePipeline() {
     setResult(null);
   }, [originalPreview]);
 
-  const run = useCallback(async (file: File) => {
-    abortRef.current?.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
+  const run = useCallback(
+    async (file: File) => {
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
 
-    setError(null);
-    setResult(null);
-    setProgress(0);
+      setError(null);
+      setResult(null);
+      setProgress(0);
 
-    if (originalPreview) URL.revokeObjectURL(originalPreview);
-    setOriginalPreview(URL.createObjectURL(file));
+      if (originalPreview) URL.revokeObjectURL(originalPreview);
+      setOriginalPreview(URL.createObjectURL(file));
 
-    try {
-      setStage("signing");
-      const signRes = await fetch("/api/upload/sign", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          filename: file.name,
-          contentType: file.type,
-          size: file.size,
-        }),
-        signal: controller.signal,
-      });
+      try {
+        setStage("signing");
+        const signRes = await fetch("/api/upload/sign", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            filename: file.name,
+            contentType: file.type,
+            size: file.size,
+          }),
+          signal: controller.signal,
+        });
 
-      if (!signRes.ok) {
-        const j = (await signRes.json().catch(() => ({}))) as ErrorResp;
-        throw new Error(j.error?.message ?? "Could not prepare upload");
-      }
-      const sign = (await signRes.json()) as SignResp;
+        if (!signRes.ok) {
+          const j = (await signRes.json().catch(() => ({}))) as ErrorResp;
+          throw new Error(j.error?.message ?? "Could not prepare upload");
+        }
+        const sign = (await signRes.json()) as SignResp;
 
-      setStage("uploading");
-      await uploadWithProgress(sign.uploadUrl, file, controller.signal, (p) => {
-        setProgress(p * 0.3);
-      });
+        setStage("uploading");
+        await uploadWithProgress(
+          sign.uploadUrl,
+          file,
+          controller.signal,
+          (p) => {
+            setProgress(p * 0.3);
+          },
+        );
 
-      const sseRes = await fetch(`/api/images/${sign.imageId}/process`, {
-        method: "POST",
-        signal: controller.signal,
-      });
+        const sseRes = await fetch(`/api/images/${sign.imageId}/process`, {
+          method: "POST",
+          signal: controller.signal,
+        });
 
-      if (!sseRes.ok || !sseRes.body) {
-        const j = (await sseRes.json().catch(() => ({}))) as ErrorResp;
-        throw new Error(j.error?.message ?? "Processing failed to start");
-      }
+        if (!sseRes.ok || !sseRes.body) {
+          const j = (await sseRes.json().catch(() => ({}))) as ErrorResp;
+          throw new Error(j.error?.message ?? "Processing failed to start");
+        }
 
-      const reader = sseRes.body.getReader();
-      const decoder = new TextDecoder();
-      let buf = "";
+        const reader = sseRes.body.getReader();
+        const decoder = new TextDecoder();
+        let buf = "";
 
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        buf += decoder.decode(value, { stream: true });
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
 
-        const events = buf.split("\n\n");
-        buf = events.pop() ?? "";
+          const events = buf.split("\n\n");
+          buf = events.pop() ?? "";
 
-        for (const block of events) {
-          const dataLine = block
-            .split("\n")
-            .find((l) => l.startsWith("data: "));
-          if (!dataLine) continue;
-          const payload = JSON.parse(dataLine.slice(6));
+          for (const block of events) {
+            const dataLine = block
+              .split("\n")
+              .find((l) => l.startsWith("data: "));
+            if (!dataLine) continue;
+            const payload = JSON.parse(dataLine.slice(6));
 
-          if (payload.stage === "done") {
-            setStage("done");
-            setProgress(1);
-            setResult({
-              imageId: sign.imageId,
-              publicId: payload.publicId,
-            });
-            return;
-          }
-          if (payload.stage === "error") {
-            throw new Error(payload.message ?? "Processing failed");
-          }
-          setStage(payload.stage as Stage);
-          if (typeof payload.progress === "number") {
-            setProgress(0.3 + payload.progress * 0.7);
+            if (payload.stage === "done") {
+              setStage("done");
+              setProgress(1);
+              setResult({
+                imageId: sign.imageId,
+                publicId: payload.publicId,
+              });
+              return;
+            }
+            if (payload.stage === "error") {
+              throw new Error(payload.message ?? "Processing failed");
+            }
+            setStage(payload.stage as Stage);
+            if (typeof payload.progress === "number") {
+              setProgress(0.3 + payload.progress * 0.7);
+            }
           }
         }
+      } catch (err) {
+        if (controller.signal.aborted) return;
+        const message =
+          err instanceof Error ? err.message : "Something went wrong";
+        setError(message);
+        setStage("error");
       }
-    } catch (err) {
-      if (controller.signal.aborted) return;
-      const message =
-        err instanceof Error ? err.message : "Something went wrong";
-      setError(message);
-      setStage("error");
-    }
-  }, [originalPreview]);
+    },
+    [originalPreview],
+  );
 
   return {
     stage,

@@ -58,9 +58,7 @@ export async function putObject(
 }
 
 export async function deleteObject(key: string) {
-  await r2.send(
-    new DeleteObjectCommand({ Bucket: env.R2_BUCKET, Key: key }),
-  );
+  await r2.send(new DeleteObjectCommand({ Bucket: env.R2_BUCKET, Key: key }));
 }
 
 export function publicUrl(key: string) {

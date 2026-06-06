@@ -3,7 +3,7 @@
 import { ExternalLink, Loader2, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { formatBytes, formatRelativeTime } from "@/lib/format";
@@ -23,6 +23,18 @@ export function DashboardGrid({ items }: { items: DashboardItem[] }) {
   const router = useRouter();
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [, startTransition] = useTransition();
+
+  const hasInFlight = items.some(
+    (i) => i.status === "uploaded" || i.status === "processing",
+  );
+
+  useEffect(() => {
+    if (!hasInFlight) return;
+    const id = setInterval(() => {
+      startTransition(() => router.refresh());
+    }, 2500);
+    return () => clearInterval(id);
+  }, [hasInFlight, router]);
 
   async function handleDelete(id: string) {
     if (!confirm("Delete this image? This removes it from storage.")) return;
@@ -61,7 +73,8 @@ export function DashboardGrid({ items }: { items: DashboardItem[] }) {
                 />
               ) : (
                 <div className="grid size-full place-items-center text-xs font-mono text-[color:var(--color-muted-foreground)]">
-                  {item.status === "processing" || item.status === "uploaded" ? (
+                  {item.status === "processing" ||
+                  item.status === "uploaded" ? (
                     <span className="inline-flex items-center gap-2">
                       <Loader2 className="size-3.5 animate-spin" />
                       {item.status}

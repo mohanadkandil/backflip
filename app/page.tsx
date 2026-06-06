@@ -9,15 +9,16 @@ export default function HomePage() {
           bg removal · horizontal flip · in one shot
         </span>
         <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
-          Cut the background.<br />
+          Cut the background.
+          <br />
           <span className="text-[color:var(--color-muted-foreground)]">
             Then flip it.
           </span>
         </h1>
         <p className="text-base text-[color:var(--color-muted-foreground)] sm:max-w-xl">
-          Upload an image. Backflip removes the background with Cloudflare
-          Workers AI, mirrors it horizontally, and hosts the result. Free, fast,
-          no signup.
+          Upload an image. Backflip removes the background, mirrors it
+          horizontally, and hosts the result on Cloudflare R2. Free, fast, no
+          signup.
         </p>
       </section>
 
@@ -27,7 +28,7 @@ export default function HomePage() {
         <Feature
           icon={<Sparkles className="size-4" />}
           title="AI cutouts"
-          body="briaai/rembg via Cloudflare Workers AI"
+          body="fal.ai rembg → transparent PNG → sharp flop"
         />
         <Feature
           icon={<Zap className="size-4" />}

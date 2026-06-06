@@ -1,11 +1,7 @@
 import { z } from "zod";
 
 export const MAX_BYTES = 10 * 1024 * 1024;
-export const ALLOWED_TYPES = [
-  "image/png",
-  "image/jpeg",
-  "image/webp",
-] as const;
+export const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp"] as const;
 export type AllowedType = (typeof ALLOWED_TYPES)[number];
 
 export const signRequestSchema = z.object({

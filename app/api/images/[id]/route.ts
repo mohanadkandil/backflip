@@ -27,9 +27,7 @@ export async function DELETE(
 
   await Promise.allSettled([
     deleteObject(row.originalKey),
-    row.processedKey
-      ? deleteObject(row.processedKey)
-      : Promise.resolve(),
+    row.processedKey ? deleteObject(row.processedKey) : Promise.resolve(),
   ]);
 
   await db.delete(images).where(eq(images.id, id));

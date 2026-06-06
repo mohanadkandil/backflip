@@ -14,8 +14,7 @@ export function UploadStage() {
   const { stage, progress, error, result, originalPreview, run, reset } =
     useImagePipeline();
 
-  const busy =
-    stage !== "idle" && stage !== "done" && stage !== "error";
+  const busy = stage !== "idle" && stage !== "done" && stage !== "error";
 
   const handleFile = useCallback(
     (file: File) => {

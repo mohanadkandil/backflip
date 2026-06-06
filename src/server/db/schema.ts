@@ -1,7 +1,12 @@
 import { index, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { nanoid } from "nanoid";
 
-export const imageStatus = ["uploaded", "processing", "done", "failed"] as const;
+export const imageStatus = [
+  "uploaded",
+  "processing",
+  "done",
+  "failed",
+] as const;
 export type ImageStatus = (typeof imageStatus)[number];
 
 export const images = pgTable(

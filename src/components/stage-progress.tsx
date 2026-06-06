@@ -1,8 +1,8 @@
 "use client";
 
 import { Check, Loader2, X } from "lucide-react";
+import { STAGE_LABEL, type Stage } from "@/hooks/use-image-pipeline";
 import { cn } from "@/lib/cn";
-import { type Stage, STAGE_LABEL } from "@/hooks/use-image-pipeline";
 
 const STAGES: Stage[] = ["signing", "uploading", "rembg", "flip", "upload"];
 
@@ -77,9 +77,7 @@ export function StageProgress({
               )}
             >
               {st === "done" && <Check className="size-3.5" />}
-              {st === "active" && (
-                <Loader2 className="size-3.5 animate-spin" />
-              )}
+              {st === "active" && <Loader2 className="size-3.5 animate-spin" />}
               {st === "pending" && (
                 <span className="inline-block size-1.5 rounded-full bg-current opacity-40" />
               )}

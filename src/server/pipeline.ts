@@ -3,10 +3,9 @@ import sharp from "sharp";
 import { removeBackground } from "./ai";
 import { db } from "./db/client";
 import { images } from "./db/schema";
-import { getObjectBytes, putObject } from "./r2";
+import { publicUrl, putObject } from "./r2";
 
 export type PipelineEvent =
-  | { stage: "fetch"; progress: number }
   | { stage: "rembg"; progress: number }
   | { stage: "flip"; progress: number }
   | { stage: "upload"; progress: number }
@@ -33,11 +32,9 @@ export async function* runPipeline(
     .where(eq(images.id, imageId));
 
   try {
-    yield { stage: "fetch", progress: 0.1 };
-    const original = await getObjectBytes(img.originalKey);
-
-    yield { stage: "rembg", progress: 0.3 };
-    const transparent = await removeBackground(original);
+    yield { stage: "rembg", progress: 0.2 };
+    // fal pulls the original directly from the public R2 URL.
+    const transparent = await removeBackground(publicUrl(img.originalKey));
 
     yield { stage: "flip", progress: 0.7 };
     // sharp.flop() = horizontal flip (mirror across vertical axis).

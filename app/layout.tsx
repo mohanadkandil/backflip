@@ -14,7 +14,10 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: "Backflip — background removal + horizontal flip",
   description:
     "Upload an image. We remove the background and flip it horizontally. Free, fast, no signup.",
@@ -62,9 +65,8 @@ export default function RootLayout({
         </header>
         <main className="flex flex-1 flex-col">{children}</main>
         <footer className="border-t py-6">
-          <div className="mx-auto flex w-full max-w-5xl flex-col items-center justify-between gap-2 px-6 text-xs text-[color:var(--color-muted-foreground)] font-mono sm:flex-row">
+          <div className="mx-auto flex w-full max-w-5xl items-center justify-center px-6 text-xs text-[color:var(--color-muted-foreground)] font-mono">
             <span>backflip · bg removal + horizontal flip</span>
-            <span>cloudflare workers ai · r2 · neon</span>
           </div>
         </footer>
         <Toaster

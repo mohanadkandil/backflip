@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
 import { nanoid } from "nanoid";
+import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api-error";
 import { signRequestSchema } from "@/schemas/upload";
 import { db } from "@/server/db/client";
@@ -22,7 +22,10 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
   const parsed = signRequestSchema.safeParse(body);
   if (!parsed.success) {
-    return apiError("BAD_REQUEST", parsed.error.issues[0]?.message ?? "Invalid request");
+    return apiError(
+      "BAD_REQUEST",
+      parsed.error.issues[0]?.message ?? "Invalid request",
+    );
   }
 
   const id = nanoid();

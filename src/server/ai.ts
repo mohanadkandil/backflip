@@ -1,61 +1,76 @@
 import { env } from "@/env";
 
-const MODEL = "@cf/briaai/rembg-1.4";
-const TIMEOUT_MS = 45_000;
+const ENDPOINT = "https://fal.run/fal-ai/imageutils/rembg";
+const TIMEOUT_MS = 60_000;
 const MAX_ATTEMPTS = 3;
 
-export async function removeBackground(imageBytes: Buffer): Promise<Buffer> {
-  const url = `https://api.cloudflare.com/client/v4/accounts/${env.CF_ACCOUNT_ID}/ai/run/${MODEL}`;
-  const body = JSON.stringify({ image: Array.from(imageBytes) });
+interface FalResponse {
+  image?: { url?: string };
+  detail?: unknown;
+}
 
+/**
+ * fal.ai imageutils/rembg — background removal.
+ * Accepts a publicly fetchable image URL. With `sync_mode: true`
+ * the output is returned inline as a data URI (no extra fetch).
+ */
+export async function removeBackground(imageUrl: string): Promise<Buffer> {
   let lastErr: unknown;
+
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     try {
-      const res = await fetch(url, {
+      const res = await fetch(ENDPOINT, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${env.CF_API_TOKEN}`,
+          Authorization: `Key ${env.FAL_KEY}`,
           "Content-Type": "application/json",
-          Accept: "image/png",
         },
-        body,
+        body: JSON.stringify({
+          image_url: imageUrl,
+          sync_mode: true,
+        }),
         signal: AbortSignal.timeout(TIMEOUT_MS),
       });
 
       if (!res.ok) {
         const text = await res.text().catch(() => "");
-        throw new Error(`Workers AI ${res.status}: ${text.slice(0, 500)}`);
+        throw new Error(`fal ${res.status}: ${text.slice(0, 400)}`);
       }
 
-      const contentType = res.headers.get("content-type") ?? "";
-      if (contentType.startsWith("image/")) {
-        const buf = Buffer.from(await res.arrayBuffer());
-        if (buf.length < 100) throw new Error("rembg returned empty payload");
+      const json = (await res.json()) as FalResponse;
+      const url = json.image?.url;
+      if (!url) {
+        throw new Error(
+          `fal returned no image url: ${JSON.stringify(json).slice(0, 300)}`,
+        );
+      }
+
+      if (url.startsWith("data:")) {
+        const b64 = url.split(",", 2)[1] ?? "";
+        const buf = Buffer.from(b64, "base64");
+        if (buf.length < 100) throw new Error("fal data URI was empty");
         return buf;
       }
 
-      // Fallback: JSON-wrapped base64 response shape some CF models return.
-      const json = (await res.json()) as {
-        success?: boolean;
-        result?: string | { image?: string };
-        errors?: { message: string }[];
-      };
-      if (!json.success || !json.result) {
-        const msg = json.errors?.[0]?.message ?? "rembg JSON response missing result";
-        throw new Error(msg);
-      }
-      const b64 =
-        typeof json.result === "string" ? json.result : json.result.image;
-      if (!b64) throw new Error("rembg JSON result has no image field");
-      return Buffer.from(b64, "base64");
+      const dl = await fetch(url, {
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+      });
+      if (!dl.ok) throw new Error(`fal CDN ${dl.status}`);
+      const buf = Buffer.from(await dl.arrayBuffer());
+      if (buf.length < 100) throw new Error("fal CDN returned empty payload");
+      return buf;
     } catch (err) {
       lastErr = err;
+      const msg = err instanceof Error ? err.message : "";
+      // Bad auth — don't waste retries
+      if (msg.includes("401") || msg.includes("403")) throw err;
       if (attempt < MAX_ATTEMPTS - 1) {
         await new Promise((r) => setTimeout(r, 500 * 2 ** attempt));
       }
     }
   }
+
   throw lastErr instanceof Error
     ? lastErr
-    : new Error("rembg failed after retries");
+    : new Error("fal rembg failed after retries");
 }
