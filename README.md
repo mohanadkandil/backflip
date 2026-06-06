@@ -6,7 +6,7 @@ Upload an image → background removed → mirrored horizontally → hosted at a
 
 **Live:** https://www.backflip.page
 
-Built for the Uplane take-home in ~12 hours.
+Built for the Uplane take-home in ~8 hours.
 
 ---
 
@@ -39,18 +39,18 @@ Plain English: browser uploads straight to R2 with a presigned URL (no bytes thr
 
 ## Stack
 
-| Layer | Pick | Why |
-|---|---|---|
-| Framework | **Next.js 16 (App Router)** | RSC + Route Handlers = single TS codebase, no separate API server |
-| Hosting | **Vercel** | Native Next, free tier covers this, deploys on push |
-| Storage | **Cloudflare R2** | S3-compatible, zero egress fees, custom domain ready |
-| Background removal | **fal.ai `imageutils/rembg`** | Free, accepts URLs directly, `sync_mode` returns inline data URI (one round-trip) |
-| Image transform | **sharp** (`.flop()`) | Battle-tested, instant, runs in Node runtime on Vercel |
-| Database | **Neon Postgres + Drizzle ORM** | Serverless Postgres, typed queries, branch-per-PR |
-| Rate limit | **Upstash Redis** | REST-based, edge-friendly, sliding window primitive built-in |
-| Validation | **zod** (req bodies) + **@t3-oss/env-nextjs** (env vars) | Fail loud at the boundary, never at runtime |
-| Lint/format | **biome** | One tool, fast, no eslint+prettier dance |
-| UI | Tailwind v4 + Lucide + Sonner | shadcn-style buttons, hand-rolled (~80 lines) — no bloat |
+| Layer              | Pick                                                     | Why                                                                               |
+| ------------------ | -------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Framework          | **Next.js 16 (App Router)**                              | RSC + Route Handlers = single TS codebase, no separate API server                 |
+| Hosting            | **Vercel**                                               | Native Next, free tier covers this, deploys on push                               |
+| Storage            | **Cloudflare R2**                                        | S3-compatible, zero egress fees, custom domain ready                              |
+| Background removal | **fal.ai `imageutils/rembg`**                            | Free, accepts URLs directly, `sync_mode` returns inline data URI (one round-trip) |
+| Image transform    | **sharp** (`.flop()`)                                    | Battle-tested, instant, runs in Node runtime on Vercel                            |
+| Database           | **Neon Postgres + Drizzle ORM**                          | Serverless Postgres, typed queries, branch-per-PR                                 |
+| Rate limit         | **Upstash Redis**                                        | REST-based, edge-friendly, sliding window primitive built-in                      |
+| Validation         | **zod** (req bodies) + **@t3-oss/env-nextjs** (env vars) | Fail loud at the boundary, never at runtime                                       |
+| Lint/format        | **biome**                                                | One tool, fast, no eslint+prettier dance                                          |
+| UI                 | Tailwind v4 + Lucide + Sonner                            | shadcn-style buttons, hand-rolled (~80 lines) — no bloat                          |
 
 > **Why not Workers AI for rembg?** Cloudflare quietly removed `briaai/rembg-1.4` from the catalog (verified via `/ai/models/search` — only text + text-to-image models remain). fal.ai gives the same model with $0-per-second pricing and a cleaner DX (just pass a URL).
 
@@ -108,29 +108,29 @@ That's it.
 
 ### Scripts
 
-| | |
-|---|---|
-| `pnpm dev` | Next dev (turbopack) |
-| `pnpm build` | Production build |
-| `pnpm typecheck` | `tsc --noEmit` |
-| `pnpm check` | Biome lint + format + autofix |
-| `pnpm db:push` | Apply Drizzle schema to Neon |
-| `pnpm db:studio` | Open Drizzle Studio |
+|                  |                               |
+| ---------------- | ----------------------------- |
+| `pnpm dev`       | Next dev (turbopack)          |
+| `pnpm build`     | Production build              |
+| `pnpm typecheck` | `tsc --noEmit`                |
+| `pnpm check`     | Biome lint + format + autofix |
+| `pnpm db:push`   | Apply Drizzle schema to Neon  |
+| `pnpm db:studio` | Open Drizzle Studio           |
 
 ---
 
 ## Env vars
 
-| Key | What | Where to get |
-|---|---|---|
-| `DATABASE_URL` | Neon pooled connection string | https://neon.tech |
-| `R2_ACCOUNT_ID` | CF account id | dashboard sidebar |
-| `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` | R2 API token (Object R/W on bucket) | R2 → API tokens |
-| `R2_BUCKET` | bucket name (default: `backflip`) | — |
-| `R2_PUBLIC_URL` | bucket's r2.dev URL or your custom domain | R2 → bucket → settings |
-| `FAL_KEY` | fal.ai API key | https://fal.ai/dashboard/keys |
-| `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | Upstash Redis REST creds | upstash console |
-| `NEXT_PUBLIC_SITE_URL` | canonical site origin (for `metadataBase`) | — |
+| Key                                                   | What                                       | Where to get                  |
+| ----------------------------------------------------- | ------------------------------------------ | ----------------------------- |
+| `DATABASE_URL`                                        | Neon pooled connection string              | https://neon.tech             |
+| `R2_ACCOUNT_ID`                                       | CF account id                              | dashboard sidebar             |
+| `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY`           | R2 API token (Object R/W on bucket)        | R2 → API tokens               |
+| `R2_BUCKET`                                           | bucket name (default: `backflip`)          | —                             |
+| `R2_PUBLIC_URL`                                       | bucket's r2.dev URL or your custom domain  | R2 → bucket → settings        |
+| `FAL_KEY`                                             | fal.ai API key                             | https://fal.ai/dashboard/keys |
+| `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | Upstash Redis REST creds                   | upstash console               |
+| `NEXT_PUBLIC_SITE_URL`                                | canonical site origin (for `metadataBase`) | —                             |
 
 ---
 
