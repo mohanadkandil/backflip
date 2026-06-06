@@ -2,21 +2,37 @@ import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import { env } from "@/env";
 
-const redis = new Redis({
-  url: env.UPSTASH_REDIS_REST_URL,
-  token: env.UPSTASH_REDIS_REST_TOKEN,
-});
+let _redis: Redis | null = null;
+function getRedis() {
+  if (!_redis) {
+    _redis = new Redis({
+      url: env.UPSTASH_REDIS_REST_URL,
+      token: env.UPSTASH_REDIS_REST_TOKEN,
+    });
+  }
+  return _redis;
+}
 
-export const uploadLimiter = new Ratelimit({
-  redis,
-  limiter: Ratelimit.slidingWindow(20, "1 h"),
-  prefix: "ratelimit:upload",
-  analytics: false,
-});
+function makeLimiter(
+  tokens: number,
+  window: `${number} ${"s" | "m" | "h"}`,
+  prefix: string,
+) {
+  let inst: Ratelimit | null = null;
+  return {
+    limit(id: string) {
+      if (!inst) {
+        inst = new Ratelimit({
+          redis: getRedis(),
+          limiter: Ratelimit.slidingWindow(tokens, window),
+          prefix,
+          analytics: false,
+        });
+      }
+      return inst.limit(id);
+    },
+  };
+}
 
-export const processLimiter = new Ratelimit({
-  redis,
-  limiter: Ratelimit.slidingWindow(30, "1 h"),
-  prefix: "ratelimit:process",
-  analytics: false,
-});
+export const uploadLimiter = makeLimiter(20, "1 h", "ratelimit:upload");
+export const processLimiter = makeLimiter(30, "1 h", "ratelimit:process");
